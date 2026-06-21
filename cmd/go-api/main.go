@@ -1,8 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/tanzid64/go-api/internal/config"
 )
@@ -22,10 +28,29 @@ func main() {
 		Addr:    cfg.Addr,
 		Handler: router,
 	}
-	err := server.ListenAndServe()
+	log.Printf("Server started at %s", cfg.Addr)
+	done := make(chan os.Signal, 1)
+
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Fatalf("Failed to start server: %v", err.Error())
+		}
+	}()
+
+	<-done
+
+	slog.Info("Server is shutting down")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := server.Shutdown(ctx)
 	if err != nil {
-		log.Fatalf("Failed to start server: %v", err.Error())
+		slog.Error("Error occurred while shutting down server", "error", err.Error())
 	}
 
-	log.Printf("Server started at %s", cfg.Addr)
+	slog.Info("Server stopped gracefully")
 }
