@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/tanzid64/go-api/internal/config"
+	"github.com/tanzid64/go-api/internal/http/handlers/student"
 )
 
 func main() {
@@ -20,9 +21,7 @@ func main() {
 	// Database setup
 	// Router setup
 	router := http.NewServeMux()
-	router.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Welcome to Go API"))
-	})
+	router.HandleFunc("POST /api/students", student.New())
 	// Start server
 	server := http.Server{
 		Addr:    cfg.Addr,
